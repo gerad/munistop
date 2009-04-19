@@ -167,17 +167,21 @@
 
           $('#times').prepend(table);
 
-          getTimes(data, function(times) {
-            table.find('*[class=loading]').hide();
+          var updateDisplay = function() {
+            getTimes(data, function(times) {
+              table.find('*[class=loading]').hide();
 
-            var current = table.find('*[class=current]');
-            if(times.length > 0) {
-              current.text(times.shift());
-            } else current.text('None');
-            current.show();
+              var current = table.find('*[class=current]');
+              if(times.length > 0) {
+                current.text(times.shift());
+              } else current.text('None');
+              current.show();
 
-            table.find('*[class=next]').text(times.join(', ')).show();
-          });
+              table.find('*[class=next]').text(times.join(', ')).show();
+            });
+          };
+          updateDisplay();
+          setInterval(updateDisplay, 30000);
         }
 
         var getTimes = function(data, callback) {
