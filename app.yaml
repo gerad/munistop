@@ -7,5 +7,9 @@ handlers:
 - url: /images
   static_dir: static/images
 
+- url: /favicon.ico
+  static_files: static/images/favicon.ico
+  upload: static/images/favicon.ico
+
 - url: /.*
   script: munistop.py
