@@ -4,10 +4,20 @@ import os
 from google.appengine.ext.webapp import template
 import nextbus
 from django.utils.simplejson import JSONEncoder
+import datetime
 
 class IndexController(webapp.RequestHandler):
   def get(self):
     path = os.path.join(os.path.dirname(__file__), 'index.html')
+
+    # seriously? this is a lot of work to set expiration
+    expire_days = 7
+    now = datetime.datetime.now()
+    expire_date = now + datetime.timedelta(expire_days);
+    expire_seconds = expire_days * 24 * 60 * 60
+    self.response.headers['Expires'] = expire_date.strftime("%a, %d %b %Y %H:%M:%S GMT")
+    self.response.headers['Cache-Control'] = 'cache,public,max-age=%d' % expire_seconds
+
     self.response.out.write(template.render(path, dict()))
 
 class RoutesController(webapp.RequestHandler):
