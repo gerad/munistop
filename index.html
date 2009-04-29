@@ -12,6 +12,8 @@
     body {
       margin:0;
       font-family: Helvetica, Arial, Sans-Serif;
+    }
+    body[orient=portrait] {
       min-height: 356px;
       width: 320px;
     }
@@ -65,14 +67,9 @@
     google.load("jquery", "1");
     google.setOnLoadCallback(function() {
       $(function() {
+
+        ////////// db
         var cookies = 10;
-        var hierarchy = ['routes', 'directions', 'stops', 'times'];
-        var selects = $('select');
-
-        var posf = function(name) {
-          return $.inArray(name, hierarchy);
-        };
-
         var stringify = function(selects) {
           var ret = '';
           selects.each(function() {
@@ -110,6 +107,20 @@
           }
         };
 
+        var save = function(selects) {
+          for(var i = cookies - 2; i >= 0; i--) {
+            var c = cookie(i);
+            if(c) cookie(i + 1, c, 90);
+          }
+          cookie(0, stringify(selects), 90);
+        }
+
+        ////////// api
+        var hierarchy = ['routes', 'directions', 'stops', 'times'];
+        var posf = function(name) {
+          return $.inArray(name, hierarchy);
+        };
+
         var url = function(data) {
           var url = '';
           for(var i = 0; i <= data.length; i++) {
@@ -119,19 +130,22 @@
           return url;
         };
 
-        var reset = function(select) {
-          var opt1 = select.children().eq(0);
-          select.children().remove();
-          select.append(opt1);
-          select.attr({ disabled: true });
-        }
-        
         var get = function(name, callback) {
           var pos = posf(name);
           var data = []
           selects.slice(0, pos).map(function() { data.push($(this).val()); });
           var u = url(data);
           $.getJSON(u, callback);
+        }
+
+        ////////// choice
+        var selects = $('select');
+
+        var reset = function(select) {
+          var opt1 = select.children().eq(0);
+          select.children().remove();
+          select.append(opt1);
+          select.attr({ disabled: true });
         }
 
         var update = function(name) {
@@ -153,6 +167,17 @@
           });
         };
 
+        selects.change(function() {
+          var name = $(this).attr('name');
+          var pos = posf(name);
+          var next = hierarchy[pos + 1];
+          if(next != 'times') update(next);
+          else time();
+        });
+
+        update('routes');
+
+        ////////// time
         var display = function(data) {
           var table = $("<table><tr>" +
             "<td class='info'>" +
@@ -196,24 +221,6 @@
           save(selects);
           displayCookie(0);
         };
-        
-        var save = function(selects) {
-          for(var i = cookies - 2; i >= 0; i--) {
-            var c = cookie(i);
-            if(c) cookie(i + 1, c, 90);
-          }
-          cookie(0, stringify(selects), 90);
-        }
-
-        selects.change(function() {
-          var name = $(this).attr('name');
-          var pos = posf(name);
-          var next = hierarchy[pos + 1];
-          if(next != 'times') update(next);
-          else time();
-        });
-
-        update('routes');
 
         var displayCookie = function(c_name) {
           var c = cookie(c_name);
@@ -224,6 +231,7 @@
         for(var i = cookies - 1; i >= 0; i--)
           displayCookie(i);
 
+        // iphone orientation html
         var orientation = null;
         var orient = function() {
           var current_orientation = (window.innerWidth == 320 ? 'portrait' : 'landscape');
