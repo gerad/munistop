@@ -1,0 +1,222 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" 
+                    "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+  <script src="../static/js/jquery.js"></script>
+  <script src="../static/js/munistop.js"></script>
+  <link rel="stylesheet" href="qunit/testsuite.css" type="text/css" media="screen" />
+
+  <script>
+$(function() {
+
+var m = MuniStop;
+
+var MockXHR = (function() {
+  var xhr, responses;
+  return {
+    setup: function() {
+      xhr = XMLHttpRequest;
+      XMLHttpRequest = function() {};
+      XMLHttpRequest.prototype.send = function() {
+        this.readyState = 4;
+        this.status = 200;
+        this.onreadystatechange();
+      };
+      XMLHttpRequest.prototype.open = function(method, url, async) {
+        ok(async, "should be asynchronous");
+        equals(method, "GET", "should be get");
+        ok(responses[url], 'expected url accessed');
+
+        this.responseText = responses[url];
+      }
+    },
+    expects: function(urls) {
+      responses = urls;
+    },
+    teardown: function() {
+      XMLHttpRequest = xhr;
+    }
+  };  
+})();
+
+module("store", {
+  setup: function() {
+    m.store.reset();
+  }
+});
+
+test("starts empty", function() {
+  equals(0, m.store().length);
+});
+
+test("saves a table", function() {
+  var table = [['a', 'b']];
+  m.store(table);
+  equals(1, m.store().length);
+  same(table, m.store()[0]);
+});
+
+test("can be reset", function() {
+  m.store([['a', 'b']]);
+  equals(1, m.store().length);
+  m.store.reset();
+  equals(0, m.store().length);
+});
+
+test("saves a complex table", function() {
+  var table = [['a', 'b'], ['c', 'd']];
+  m.store(table);
+  equals(1, m.store().length);
+  same(table, m.store()[0]);
+});
+
+test("saves multiple tables", function() {
+  var table1 = [['a', 'b'], ['c', 'd']];
+  var table2 = [['a', 'b']];
+
+  m.store(table1);
+  m.store(table2);
+
+  equals(2, m.store().length);
+
+  same(table2, m.store()[0]);
+  same(table1, m.store()[1]);
+});
+
+test("saves 10 tables", function() {
+  for(var i = 0; i < 10; i++) {
+    m.store([[i]]);
+  }
+  equals(10, m.store().length);
+});
+
+test("saves only 10 tables", function() {
+  for(var i = 0; i < 11; i++) {
+    m.store([[i]]);
+  }
+  equals(10, m.store().length);
+  same([['10']], m.store()[0])
+  same([['1']], m.store()[9])
+});
+
+module("get", {
+  setup: MockXHR.setup,
+  teardown: MockXHR.teardown
+});
+
+test("json parsed correctly", function() {
+  MockXHR.expects({
+    '/routes/a/directions/b/stops/c/times': "{foo: 'bar'}"
+  });
+  
+  var called = false;
+  m.get(['a', 'b', 'c'], function(json) {
+    same({foo: 'bar'}, json, "json parsed correctly");
+    called = true;
+  });
+  ok(called, 'callback called');
+});
+
+module("choice", {
+  setup: function() {
+    MockXHR.setup();
+    MockXHR.expects({
+      '/routes': "[['A', 'a'], ['B', 'b'], ['C', 'c']]",
+      '/routes/a/directions': "[['D', 'd'], ['E', 'e'], ['F', 'f']]",
+      '/routes/a/directions/d/stops': "[['G', 'g'], ['H', 'h'], ['I', 'i']]"
+    });
+  },
+  teardown: MockXHR.teardown
+});
+
+test("routes", function() {
+  m.choice('routes');
+  var opts = $('select[name=routes] option');
+  equals(opts.size(), 4, 'routes has 4 options');
+  var vals = opts.map(function() { return $(this).html(); }).get();
+  same(vals, ['Route', 'A', 'B', 'C'], 'route options are correct');
+});
+
+test("directions", function() {
+  m.choice('routes');
+  var routes = $('select[name=routes]');
+  routes.get()[0].options[1].selected = true;
+
+  m.choice('directions');
+  var opts = $('select[name=directions] option');
+  var vals = opts.map(function() { return $(this).html(); }).get();
+  same(vals, ['Direction', 'D', 'E', 'F'], 'direction options are correct');
+});
+
+test("stops", function() {
+  m.choice('routes');
+  var routes = $('select[name=routes]');
+  routes.get()[0].options[1].selected = true;
+
+  m.choice('directions');
+  var directions = $('select[name=directions]');
+  directions.get()[0].options[1].selected = true;
+
+  m.choice('stops');
+  var opts = $('select[name=stops] option');
+  var vals = opts.map(function() { return $(this).html(); }).get();
+  same(vals, ['Stop', 'G', 'H', 'I'], 'stop options are correct');
+});
+
+test("data", function() {
+  m.choice('routes');
+  var routes = $('select[name=routes]');
+  routes.get()[0].options[1].selected = true;
+  same(m.choice(), [['a', 'A']], 'correct route data is returned');
+
+  m.choice('directions');
+  var directions = $('select[name=directions]');
+  directions.get()[0].options[1].selected = true;
+  same(m.choice(), [['a', 'A'],['d', 'D']], 'correct direction data is returned');
+
+  m.choice('stops');
+  var stops = $('select[name=stops]');
+  stops.get()[0].options[1].selected = true;
+  same(m.choice(), [['a', 'A'],['d', 'D'],['g', 'G']], 'correct stop data is returned');
+});
+
+module("time", {
+  setup: function() {
+    m.store.reset();
+    MockXHR.setup();
+    MockXHR.expects({
+      '/routes/a/directions/b/stops/c/times': "['now', '10', '20']"
+    });
+  },
+  teardown: MockXHR.teardown
+});
+
+test("times correct", function() {
+  m.time([['a','A'],['b','B'],['c','C']]);
+  equals('now', $('#times table:first *.current').text(), 'current time is correct');
+  equals('10, 20', $('#times table:first *.next').text(), 'next times are correct');
+});
+
+
+});
+  </script>
+
+</head>
+<body>
+ <h1>MuniStop Tests</h1>
+ <h2 id="banner"></h2>
+ <h2 id="userAgent"></h2>
+
+ <ol id="tests"></ol>
+
+ <div id="main">
+   <div id="times"></div>
+   <form>
+     <select name="routes"><option>Route</option></select>
+     <select name="directions"><option>Direction</option></select>
+     <select name="stops"><option>Stop</option></select>
+   </form>
+ </div>
+</body>
+<script type="text/javascript" src="qunit/testrunner.js"></script>
+</html>

@@ -2,14 +2,22 @@ application: munistop
 version: 1
 runtime: python
 api_version: 1
+default_expiration: "7d"
 
 handlers:
-- url: /images
+- url: /i
   static_dir: static/images
+
+- url: /js
+  static_dir: static/js
 
 - url: /favicon.ico
   static_files: static/images/favicon.ico
   upload: static/images/favicon.ico
+
+- url: /
+  static_files: static/html/index.html
+  upload: static/html/index.html
 
 - url: /.*
   script: munistop.py
