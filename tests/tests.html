@@ -23,10 +23,7 @@ var MockXHR = (function() {
         this.onreadystatechange();
       };
       XMLHttpRequest.prototype.open = function(method, url, async) {
-        ok(async, "should be asynchronous");
-        equals(method, "GET", "should be get");
-        ok(responses[url], 'expected url accessed');
-
+        ok(responses[url], 'expected url accessed: ' + url);
         this.responseText = responses[url];
       }
     },
@@ -130,7 +127,7 @@ module("choice", {
 });
 
 test("routes", function() {
-  m.choice('routes');
+  m.choice({ id: 'choice' });
   var opts = $('select[name=routes] option');
   equals(opts.size(), 4, 'routes has 4 options');
   var vals = opts.map(function() { return $(this).html(); }).get();
@@ -138,46 +135,73 @@ test("routes", function() {
 });
 
 test("directions", function() {
-  m.choice('routes');
-  var routes = $('select[name=routes]');
-  routes.get()[0].options[1].selected = true;
+  expect(3);
+  m.choice({ id: 'choice' });
+  var routes = $('select[name=routes]').get()[0];
+  routes.options[1].selected = true;
 
-  m.choice('directions');
-  var opts = $('select[name=directions] option');
-  var vals = opts.map(function() { return $(this).html(); }).get();
-  same(vals, ['Direction', 'D', 'E', 'F'], 'direction options are correct');
+  $(routes).change(function(){
+    var opts = $('select[name=directions] option');
+    var vals = opts.map(function() { return $(this).html(); }).get();
+    same(vals, ['Direction', 'D', 'E', 'F'], 'direction options are correct');
+    start();
+  });
+
+  triggerEvent(routes, 'change');
+  stop();
 });
 
 test("stops", function() {
-  m.choice('routes');
-  var routes = $('select[name=routes]');
-  routes.get()[0].options[1].selected = true;
+  expect(4);
+  m.choice({ id: 'choice' });
+  var routes = $('select[name=routes]').get()[0];
+  var directions = $('select[name=directions]').get()[0];
 
-  m.choice('directions');
-  var directions = $('select[name=directions]');
-  directions.get()[0].options[1].selected = true;
+  routes.options[1].selected = true;
+  $(routes).change(function() {
+    directions.options[1].selected = true;
+    triggerEvent(directions, 'change');
+  });
 
-  m.choice('stops');
-  var opts = $('select[name=stops] option');
-  var vals = opts.map(function() { return $(this).html(); }).get();
-  same(vals, ['Stop', 'G', 'H', 'I'], 'stop options are correct');
+  $(directions).change(function() {
+    var opts = $('select[name=stops] option');
+    var vals = opts.map(function() { return $(this).html(); }).get();
+    same(vals, ['Stop', 'G', 'H', 'I'], 'stop options are correct');
+    start();
+  });
+
+  triggerEvent(routes, 'change');
+  stop();
 });
 
 test("data", function() {
-  m.choice('routes');
-  var routes = $('select[name=routes]');
-  routes.get()[0].options[1].selected = true;
-  same(m.choice(), [['a', 'A']], 'correct route data is returned');
+  expect(4);
 
-  m.choice('directions');
-  var directions = $('select[name=directions]');
-  directions.get()[0].options[1].selected = true;
-  same(m.choice(), [['a', 'A'],['d', 'D']], 'correct direction data is returned');
+  var routes = $('select[name=routes]').get()[0];
+  var directions = $('select[name=directions]').get()[0];
+  var stops = $('select[name=stops]').get()[0];
 
-  m.choice('stops');
-  var stops = $('select[name=stops]');
-  stops.get()[0].options[1].selected = true;
-  same(m.choice(), [['a', 'A'],['d', 'D'],['g', 'G']], 'correct stop data is returned');
+  m.choice({
+    id: 'choice',
+    onChosen: function(data) {
+      same(data, [['a', 'A'],['d', 'D'],['g', 'G']], 'correct stop data is returned');
+      start();
+    }
+  });
+
+  routes.options[1].selected = true;
+  $(routes).change(function() {
+    directions.options[1].selected = true;
+    triggerEvent(directions, 'change');
+  });
+
+  $(directions).change(function() {
+    stops.options[1].selected = true;
+    triggerEvent(stops, 'change');
+  });
+
+  triggerEvent(routes, 'change');
+  stop();
 });
 
 module("time", {
@@ -185,18 +209,128 @@ module("time", {
     m.store.reset();
     MockXHR.setup();
     MockXHR.expects({
-      '/routes/a/directions/b/stops/c/times': "['now', '10', '20']"
+      '/routes/a/directions/b/stops/c/times': "['now', '10', '20']",
+      '/routes/a/directions/b/stops/d/times': "['1', '2', '3']"
+
     });
   },
   teardown: MockXHR.teardown
 });
 
-test("times correct", function() {
-  m.time([['a','A'],['b','B'],['c','C']]);
-  equals('now', $('#times table:first *.current').text(), 'current time is correct');
-  equals('10, 20', $('#times table:first *.next').text(), 'next times are correct');
+test("displayed correctly", function() {
+  var ts = m.times({
+    id: 'times',
+    data: [
+      [['a','A'],['b','B'],['c','C']],
+      [['a','A'],['b','B'],['d','D']]
+    ] 
+  });
+  var first = $('#times table:first');
+  var last = $('#times table:last');
+
+  equals('C', first.find('*.stop').text(), 'first route: stop is correct');
+  equals('A - B', first.find('*.route').text(), 'first route: route is correct');
+  equals('now', first.find('*.current').text(), 'first route: current time is correct');
+  equals('10, 20', first.find('*.next').text(), 'first route: next times are correct');
+
+  equals('D', last.find('*.stop').text(), 'last route: stop is correct');
+  equals('A - B', last.find('*.route').text(), 'last route: route is correct');
+  equals('1', last.find('*.current').text(), 'last route: current time is correct');
+  equals('2, 3', last.find('*.next').text(), 'last route: next times are correct');
+
 });
 
+module("integration", {
+  setup: function() {
+    m.store.reset();
+    m.store([['a','A'],['b','B'],['c','C']]);
+
+    MockXHR.setup();
+    MockXHR.expects({
+      '/routes': "[['A', 'a'], ['B', 'b'], ['C', 'c']]",
+      '/routes/a/directions': "[['D', 'd'], ['E', 'e'], ['F', 'f']]",
+      '/routes/a/directions/d/stops': "[['G', 'g'], ['H', 'h'], ['I', 'i']]",
+      '/routes/a/directions/d/stops/g/times': "['now', '10', '20']",
+      '/routes/a/directions/b/stops/c/times': "['1', '2', '3']",
+    });
+  },
+  teardown: MockXHR.teardown
+});
+
+test("initialize", function() {
+  m.initialize();
+
+  var times = $('#times table:first');
+  equals('C', times.find('*.stop').text(), 'stop is correct');
+  equals('A - B', times.find('*.route').text(), 'route is correct');
+  equals('1', times.find('*.current').text(), 'current time is correct');
+  equals('2, 3', times.find('*.next').text(), 'next times are correct');
+});
+
+test("update", function() {
+  m.initialize();
+
+  MockXHR.expects({
+    '/routes/a/directions/b/stops/c/times': "['4', '5', '6']",
+  });
+  m.update();
+
+  var times = $('#times table:first');
+  equals(times.find('*.current').text(), '4', 'current time is correct');
+  equals(times.find('*.next').text(), '5, 6', 'next times are correct');
+});
+
+test("multi-update", function() {
+  m.store([['a','A'],['d','D'],['g','G']]);
+  m.initialize();
+
+  MockXHR.expects({
+    '/routes/a/directions/b/stops/c/times': "['4', '5', '6']",
+    '/routes/a/directions/d/stops/g/times': "['7', '8', '9']",
+  });
+  m.update();
+
+  var adg = $('#times table:first');
+  equals(adg.find('*.current').text(), '7', 'current time is correct');
+  equals(adg.find('*.next').text(), '8, 9', 'next times are correct');
+
+  var abc = $('#times table:last');
+  equals(abc.find('*.current').text(), '4', 'current time is correct');
+  equals(abc.find('*.next').text(), '5, 6', 'next times are correct');
+});
+
+
+test("add", function() {
+  expect(9);
+  m.initialize();
+
+  var routes = $('select[name=routes]').get()[0];
+  var directions = $('select[name=directions]').get()[0];
+  var stops = $('select[name=stops]').get()[0];
+
+  routes.options[1].selected = true;
+  $(routes).change(function() {
+    directions.options[1].selected = true;
+    triggerEvent(directions, 'change');
+  });
+
+  $(directions).change(function() {
+    stops.options[1].selected = true;
+    triggerEvent(stops, 'change');
+  });
+
+  $(stops).change(function() {
+    var added = $('#times table:first');
+    equals('G', added.find('*.stop').text(), 'stop is correct');
+    equals('A - D', added.find('*.route').text(), 'route is correct');
+    equals('now', added.find('*.current').text(), 'current time is correct');
+    equals('10, 20', added.find('*.next').text(), 'next times are correct');
+    start();
+  });
+
+  triggerEvent(routes, 'change');
+  stop();
+});
 
 });
   </script>
@@ -211,7 +345,7 @@ test("times correct", function() {
 
  <div id="main">
    <div id="times"></div>
-   <form>
+   <form id="choice">
      <select name="routes"><option>Route</option></select>
      <select name="directions"><option>Direction</option></select>
      <select name="stops"><option>Stop</option></select>

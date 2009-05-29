@@ -70,6 +70,7 @@ def scrapeTimeURL(url):
       times = [tr.td.span.string for tr in trs]
       times = [re.sub('&nbsp;', '', t) for t in times]
       times = [re.sub('Arriving', 'Now', t) for t in times]
+      times = [re.sub('Departing', 'Now', t) for t in times]
     except:
       times = []
     return times

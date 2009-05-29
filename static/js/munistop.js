@@ -1,6 +1,6 @@
-MuniStop = (function() {
+var MuniStop = (function() {
   // store class - data store (cookie based)
-  var store = (function() {
+  var Store = (function() {
     var cookies = 10;
     var expire = 90; // 90
 
@@ -71,7 +71,7 @@ MuniStop = (function() {
   })();
 
   // get class - calls the api
-  var get = (function() {
+  var Get = (function() {
     var hierarchy = ['routes', 'directions', 'stops', 'times'];
 
     var getJSON = function(url, callback) {
@@ -105,92 +105,149 @@ MuniStop = (function() {
   })();
 
   // time class
-  var time = (function() {
+  var Time = (function(options) {
+    var my = {
+      data: options.data
+    };
 
-    var display = function(data) {
-      var times = document.getElementById('times');
-      var table = "<table><tr>" +
-        "<td class='info'>" +
-        "  <div class='stop'>" + data[2][1] + '</div>' +
-        "  <div class='route'>" + data[0][1] + ' - ' + data[1][1] + '</div>' +
-        "</td><td class='times'>" +
-        "  <img class='loading' src='/i/ajax-loader.gif' alt='loading&hellip;' />" +
-        "  <div class='current' style='display:none'></div>" +
-        "  <div class='next' style='display:none'></div>" +
-        "</td>" +
-        "</tr></table>";
+    my.info = my.data.map(function(row) { return row[0]; });
+    my.id = my.info.join('-');
+    my.html = ["<table id='" + my.id + "'><tr>" ,
+        "<td class='info'>" ,
+        "  <div class='stop'>" + my.data[2][1] + '</div>' ,
+        "  <div class='route'>" + my.data[0][1] + ' - ' + my.data[1][1] + '</div>' ,
+        "</td><td class='times'>" ,
+        "  <img class='loading' src='/i/ajax-loader.gif' alt='loading&hellip;' />" ,
+        "  <div class='current' style='display:none'></div>" ,
+        "  <div class='next' style='display:none'></div>" ,
+        "</td>" ,
+        "</tr></table>"].join("\n");
 
-      times.innerHTML = table + times.innerHTML;
-      table = times.getElementsByTagName('table')[0];
-      var loading = table.getElementsByClassName('loading')[0];
-      var current = table.getElementsByClassName('current')[0];
-      var next = table.getElementsByClassName('next')[0];
-      var info = data.map(function(d) { return d[0]; });
+    my.elements = function() {
+      var table = document.getElementById(my.id);
+      return {
+        loading: table.getElementsByClassName('loading')[0],
+        current: table.getElementsByClassName('current')[0],
+        next: table.getElementsByClassName('next')[0]
+      };
+    };
 
-      var updateDisplay = function() {
+    my.showLoading = function() {
+      with(my.elements()) {
         loading.style.display = '';
         current.style.display = 'none';
         next.style.display = 'none';
+      }
+    };
 
-        get(info, function(json) {
-          if(json.length > 0) {
-            current.innerHTML = json.shift();
-          } else current.innerHTML = 'None';
+    my.showTimes = function(times) {
+      with(my.elements()) {
+        if(times.length > 0) {
+          current.innerHTML = times.shift();
+        } else current.innerHTML = 'None';
 
-          next.innerHTML = json.join(', ');
+        next.innerHTML = times.join(', ');
 
-          loading.style.display = 'none';
-          current.style.display = '';
-          next.style.display = '';
+        loading.style.display = 'none';
+        current.style.display = '';
+        next.style.display = '';
+      }
+    };
+
+    my.update = function() {
+      my.showLoading();
+      Get(my.info, function(json) {
+        my.showTimes(json);
+      });
+    };
+
+    return {
+      update: my.update,
+      html: my.html,
+      id: my.id
+    };
+  });
+
+  // times class
+  var Times = (function() {
+    return function(options) {
+      var my = {
+        id: options.id,
+        ids: {},
+        times: []
+      };
+      my.el = document.getElementById(my.id);
+
+      my.add = function(data) {
+        var t = Time({ data: data });
+        if(t.id in my.ids) return;
+        my.ids[t.id] = my.times.length;
+        my.times.push(t);
+        my.el.innerHTML = t.html + my.el.innerHTML;
+        return t;
+      };
+
+      my.update = function() {
+        my.times.forEach(function(time) {
+          time.update();
         });
       };
-      updateDisplay();
-      setInterval(updateDisplay, 20000);
-    };
 
-    return function(data) {
-      display(data);
-    };
+      for(var i = options.data.length - 1; i >= 0; --i )
+        my.add(options.data[i]);
+      my.update();
+
+      return {
+        add: my.add,
+        update: my.update
+      };
+    }
   })();
 
   // choice class
-  var choice = (function() {
-    var selects = document.getElementsByTagName('select');
+  var Choice = (function(options) {
+    var my = {
+      id: options.id,
+      onChosen: options.onChosen
+    };
+    my.el = document.getElementById(my.id);
+    if(!my.el) console.log(my.id);
+    my.selects = my.el.getElementsByTagName('select');
 
-    var data = function () {
+    my.data = function() {
       var data = [];
-      for(var i = 0; i < selects.length; i++) {
-        var sel = selects[i];
+      for(var i = 0; i < my.selects.length; i++) {
+        var sel = my.selects[i];
         if(sel.getAttribute('disabled')) break;
 
         var opt = sel.options[sel.selectedIndex];
         data.push([opt.value, opt.innerHTML])
       }
       return data;
-    }
+    };
 
-    var reset = function(select) {
+    my.reset = function(select) {
       var opts = select.getElementsByTagName('option');
-      for(var i = 1; i < opts.length; i++)
-        select.removeChildNode(opts[i]);
+      while(opts.length > 1)
+        select.removeChild(opts[1]);
       select.setAttribute("disabled", true);
-    }
+    };
 
-    var position = function(name) {
-      for(var i = 0; i< selects.length; i++) {
-        if(selects[i].getAttribute('name') === name)
+    my.position = function(name) {
+      for(var i = 0; i< my.selects.length; i++) {
+        if(my.selects[i].getAttribute('name') === name)
           return i;
       }
-    }
+    };
 
-    var update = function(pos) {
-      var select = selects[pos];
+    my.update = function(pos) {
+      var select = my.selects[pos];
 
-      for(var i = pos; i < selects.length; i++)
-        reset(selects[i]);
+      for(var i = pos; i < my.selects.length; i++)
+        my.reset(my.selects[i]);
 
-      var chosen = data().map(function(d) { return d[0]; });
-      get(chosen, function(json) {
+      var chosen = my.data().map(function(d) { return d[0]; });
+      Get(chosen, function(json) {
         json.forEach(function(a) {
           select.innerHTML = select.innerHTML
             + '<option value="' + a[1] + '">' + a[0] + '</option>';
@@ -199,42 +256,50 @@ MuniStop = (function() {
       });
     };
 
-    var change = function(event) {
+    my.change = function(event) {
       var select = event.target;
       var name = select.getAttribute('name');
-      var pos = position(name);
+      var pos = my.position(name);
       var next = pos + 1;
-      if(next === selects.length) {
-        store(data());  // TODO tightly coupled
-        time(data());
+      if(next === my.selects.length) {
+        if('onChosen' in my) my.onChosen(my.data());
       }
-      else update(next);
+      else my.update(next);
     };
 
-    for(i = 0; i < selects.length; i++) {
-      selects[i].addEventListener('change', change);
+    for(i = 0; i < my.selects.length; i++) {
+      my.selects[i].addEventListener('change', my.change);
     }
 
-    return function(name) {
-      if(name !== undefined) {
-        var pos = position(name);
-        update(pos);
-      }
-      else return data();
-    }
-  })();
-
-/*
-  choice('routes');
-  store().forEach(function(data) {
-    time(data);
+    my.update(0);
   });
-*/
-  return {
-    store: store,
-    get: get,
-    choice: choice,
-    time: time
+
+  var times;
+  var initialize = function() {
+    times = Times({id:'times', data: Store()});
+    Choice({
+      id:'choice',
+      onChosen: function(data) {
+        Store(data);
+        times.add(data).update();
+    }});
   };
 
+  var update = function() { times.update(); };
+
+  /* for html
+  window.onload = function() {
+    initialize();
+    setInterval(update, 10000);
+  }; */
+
+  /* for unit tests */
+  return {
+    choice: Choice,
+    get: Get,
+    times: Times,
+    store: Store,
+    initialize: initialize,
+    update: update
+  };
 })();
