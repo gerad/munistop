@@ -10,15 +10,15 @@ var MuniStop = (function() {
         var exdate = new Date();
         exdate.setDate(exdate.getDate() + expiredays);
         document.cookie = c_name + "=" + escape(value) +
-          ((expiredays !== undefined) ? "" : ";expires="+exdate.toGMTString());
+          ((expiredays === undefined) ? "" : ";expires="+exdate.toGMTString());
       } else { // get the cookie
         if (document.cookie.length <= 0) return null;
 
-        c_start = document.cookie.indexOf(c_name + "=");
+        var c_start = document.cookie.indexOf(c_name + "=");
         if(c_start == -1) return null;
         c_start = c_start + c_name.length + 1; 
 
-        c_end = document.cookie.indexOf(";",c_start);
+        var c_end = document.cookie.indexOf(";",c_start);
         if(c_end == -1) c_end = document.cookie.length;
 
         return unescape(document.cookie.substring(c_start, c_end));
@@ -107,7 +107,6 @@ var MuniStop = (function() {
   // time class
   var Time = (function(options) {
     var my = {
-      times: options.times,
       data: options.data
     };
 
@@ -118,39 +117,27 @@ var MuniStop = (function() {
         "  <div class='stop'>" + my.data[2][1] + '</div>' ,
         "  <div class='route'>" + my.data[0][1] + ' - ' + my.data[1][1] + '</div>' ,
         "</td><td class='times'>" ,
-        "  <div class='delete' style='display:none'>X</div>" ,
         "  <img class='loading' src='/i/ajax-loader.gif' alt='loading&hellip;' />" ,
         "  <div class='current' style='display:none'></div>" ,
         "  <div class='next' style='display:none'></div>" ,
         "</td>" ,
         "</tr></table>"].join("\n");
 
-    my.elements = function(name) {
+    my.elements = function() {
       var table = document.getElementById(my.id);
-      var elements = {};
-
-      var classNames = ['loading', 'current', 'next', 'delete'];
-      classNames.forEach(function(className) {
-        elements[className] = table.getElementsByClassName(className)[0];
-      });
-
-      return name ? elements[name] : elements;
-    };
-
-    my.hideElements = function() {
-      var els = my.elements();
-      for(var name in els)
-        els[name].style.display = 'none';
+      return {
+        loading: table.getElementsByClassName('loading')[0],
+        current: table.getElementsByClassName('current')[0],
+        next: table.getElementsByClassName('next')[0]
+      };
     };
 
     my.showLoading = function() {
-      my.hideElements();
-      my.elements('loading').style.display = '';
-    };
-
-    my.showDelete = function() {
-      my.hideElements();
-      my.elements('delete').style.display = '';
+      with(my.elements()) {
+        loading.style.display = '';
+        current.style.display = 'none';
+        next.style.display = 'none';
+      }
     };
 
     my.showTimes = function(times) {
@@ -174,13 +161,8 @@ var MuniStop = (function() {
       });
     };
 
-    my.remove = function() {
-      times.remove(my.id);
-    };
-
     return {
       update: my.update,
-      remove: my.remove,
       html: my.html,
       id: my.id
     };
@@ -197,17 +179,12 @@ var MuniStop = (function() {
       my.el = document.getElementById(my.id);
 
       my.add = function(data) {
-        var t = Time({ times: my, data: data });
+        var t = Time({ data: data });
         if(t.id in my.ids) return;
         my.ids[t.id] = my.times.length;
         my.times.push(t);
         my.el.innerHTML = t.html + my.el.innerHTML;
         return t;
-      };
-
-      my.remove = function(id) {
-        var child = document.getElementById(id);
-        my.el.removeChild(child);
       };
 
       my.update = function() {
@@ -221,10 +198,7 @@ var MuniStop = (function() {
       my.update();
 
       return {
-        add: function(data) {
-          var t = my.add(data);
-          t.update();
-        },
+        add: my.add,
         update: my.update
       };
     }
@@ -293,7 +267,7 @@ var MuniStop = (function() {
       else my.update(next);
     };
 
-    for(i = 0; i < my.selects.length; i++) {
+    for(var i = 0; i < my.selects.length; i++) {
       my.selects[i].addEventListener('change', my.change);
     }
 
@@ -307,7 +281,7 @@ var MuniStop = (function() {
       id:'choice',
       onChosen: function(data) {
         Store(data);
-        times.add(data);
+        times.add(data).update();
     }});
   };
 
@@ -329,3 +303,4 @@ var MuniStop = (function() {
     update: update
   };
 })();
+

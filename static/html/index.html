@@ -77,15 +77,15 @@
         var exdate = new Date();
         exdate.setDate(exdate.getDate() + expiredays);
         document.cookie = c_name + "=" + escape(value) +
-          ((expiredays !== undefined) ? "" : ";expires="+exdate.toGMTString());
+          ((expiredays === undefined) ? "" : ";expires="+exdate.toGMTString());
       } else { // get the cookie
         if (document.cookie.length <= 0) return null;
 
-        c_start = document.cookie.indexOf(c_name + "=");
+        var c_start = document.cookie.indexOf(c_name + "=");
         if(c_start == -1) return null;
         c_start = c_start + c_name.length + 1; 
 
-        c_end = document.cookie.indexOf(";",c_start);
+        var c_end = document.cookie.indexOf(";",c_start);
         if(c_end == -1) c_end = document.cookie.length;
 
         return unescape(document.cookie.substring(c_start, c_end));
@@ -334,7 +334,7 @@
       else my.update(next);
     };
 
-    for(i = 0; i < my.selects.length; i++) {
+    for(var i = 0; i < my.selects.length; i++) {
       my.selects[i].addEventListener('change', my.change);
     }
 
