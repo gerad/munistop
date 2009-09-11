@@ -1,8 +1,10 @@
 from google.appengine.api import urlfetch
 from BeautifulSoup import BeautifulSoup
-from google.appengine.api import memcache
+from google.appengine.api import memcache as Memcache
 import re
 import logging
+import cPickle as pickle
+
 from sys import setrecursionlimit
 setrecursionlimit(4000)
 
@@ -19,6 +21,25 @@ listAttributes = [['r', 'routeSelector'],
   ['d', 'directionSelector'],
   ['s', 'stopSelector'],
   ['t', 'toStopSelector']]
+
+def memcache(func):
+  def cached(*args):
+    key = pickle.dumps((func.__name__, args))
+    cache = Memcache.get(key)
+
+    if (cache):
+      logging.info("cache hit for %s" % func.__name__)
+      return pickle.loads(cache)
+
+    value = func(*args)
+    if (value):
+      try:
+        logging.info("caching results for %s" % func.__name__)
+        Memcache.set(key, pickle.dumps(value), 60 * 60 * 24)
+      except:
+        logging.error("FAIL: caching results for %s" % func.__name__)
+    return value
+  return cached
 
 def scrapeList(url):
   """the lists are all identical (in theory...)"""
@@ -48,12 +69,15 @@ def scrape(*attrs):
 
   return l[listAttributes[num_attrs][1]]
 
+@memcache
 def scrapeRoutes():
   return scrape()
 
+@memcache
 def scrapeDirections(route):
   return scrape(route)
 
+@memcache
 def scrapeStops(route, direction):
   return scrape(route, direction)
 
