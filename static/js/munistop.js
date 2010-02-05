@@ -74,9 +74,12 @@ var MuniStop = (function() {
   var Get = (function() {
     var hierarchy = ['routes', 'directions', 'stops', 'times'];
 
-    var getJSON = function(url, callback) {
+    var getJSON = function(url, callback, loadingCallback) {
       var xhr = new XMLHttpRequest();
       xhr.onreadystatechange = function() {
+        if(xhr.readyState === 1 && loadingCallback) {
+          loadingCallback();
+        }
         if(xhr.readyState === 4) {// loaded
           if(xhr.status === 200) {
             var json = eval('('+xhr.responseText+')');
@@ -97,8 +100,8 @@ var MuniStop = (function() {
       return url;
     };
 
-    var get = function(data, callback) {
-      getJSON(url(data), callback);
+    var get = function(data, callback, loadingCallback) {
+      getJSON(url(data), callback, loadingCallback);
     };
 
     return get;
@@ -112,8 +115,8 @@ var MuniStop = (function() {
 
     my.info = my.data.map(function(row) { return row[0]; });
     my.id = my.info.join('-');
-    my.html = ["<table id='" + my.id + "'><tr>" ,
-        "<td class='info'>" ,
+    my.html = ["<li><table id='" + my.id + "'><tr>" ,
+        "<td class='route-stop'>" ,
         "  <div class='stop'>" + my.data[2][1] + '</div>' ,
         "  <div class='route'>" + my.data[0][1] + ' - ' + my.data[1][1] + '</div>' ,
         "</td><td class='times'>" ,
@@ -121,7 +124,7 @@ var MuniStop = (function() {
         "  <div class='current' style='display:none'></div>" ,
         "  <div class='next' style='display:none'></div>" ,
         "</td>" ,
-        "</tr></table>"].join("\n");
+        "</tr></table></li>"].join("\n");
 
     my.elements = function() {
       var table = document.getElementById(my.id);
@@ -155,9 +158,10 @@ var MuniStop = (function() {
     };
 
     my.update = function() {
-      my.showLoading();
       Get(my.info, function(json) {
         my.showTimes(json);
+      }, function() {
+        my.showLoading();
       });
     };
 
@@ -287,13 +291,6 @@ var MuniStop = (function() {
 
   var update = function() { times.update(); };
 
-  /* for html
-  window.onload = function() {
-    initialize();
-    setInterval(update, 10000);
-  }; */
-
-  /* for unit tests */
   return {
     choice: Choice,
     get: Get,
