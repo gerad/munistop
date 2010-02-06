@@ -7,7 +7,6 @@
   <style type="text/css" media="screen">@import "/css/apple.min.css";</style>
   <script src="/js/jquery.1.3.2.min.js" type="text/javascript" charset="utf-8"></script>
   <script src="/js/jqtouch.min.js" type="application/x-javascript" charset="utf-8"></script>
-  <script src="/js/munistop.js" type="application/x-javascript" charset="utf-8"></script>
   <style>
   #times table {
     border-collapse: collapse;
@@ -33,32 +32,51 @@
     font-size: 10px;
     color: gray;
   }
+  #refresh > div {
+    width:20px;
+  }
+  #refresh div.refresh {
+    background: url(/i/refresh.png) no-repeat 0px 3px;
+  }
+
+  @-webkit-keyframes rotate {
+    0% { -webkit-transform: rotate(0deg); }
+    25% { -webkit-transform: rotate(90deg); }
+    50% { -webkit-transform: rotate(180deg); }
+    75% { -webkit-transform: rotate(270deg); }
+    100% { -webkit-transform: rotate(360deg); }
+  }
+
+  #refresh div.refreshing {
+    background: url(/i/refreshing.png) no-repeat 0px 6px;
+    -webkit-animation: rotate 2s linear infinite;
+    display: none;
+  }
   </style>
 </head>
 <body>
   <div id="home">
       <div class="toolbar">
           <h1>MuniStop</h1>
-          <a href="#add" class="button add slideup">+</a>
+          <div id="refresh" class="button">
+            <div class="refresh">&nbsp;</div>
+            <div class="refreshing">&nbsp;</div>
+          </div>
       </div>
       <ul id="times" class="metal"></ul>
+
+      <a href="#route" id="add" style="margin: 10px;" class="whiteButton slideup">Add Route</a>
   </div>
 
-  <div class="form" id="add">
+  <div id="route">
     <div class="toolbar">
-        <h1>New Route</h1>
+        <h1>Choose Route</h1>
         <a href="#add" class="cancel">Cancel</a>
     </div>
 
-    <form id="choice">
-      <ul class="rounded">
-        <li><select name="routes"><option>Route</option></select></li>
-        <li><select name="directions"><option>Direction</option></select></li>
-        <li><select name="stops"><option>Stop</option></select></li>
-      </ul>
-    </form>
-
-    <a href="#home" style="margin: 10px;" class="whiteButton submit">Add Route</a>
+    <ul id="routes" class="rounded">
+      <li>Loading&hellip;</li>
+    </ul>
 
   </div>
 </body>
@@ -67,9 +85,63 @@ $.jQTouch({
     startupScreen: 'i/loading.gif'
 });
 
-$(document).ready(function() {
-  MuniStop.initialize();
-  setInterval(MuniStop.update, 2500);
+$(function() {
+  /* model */
+  var model = new function() {
+    this.routes = function routes() {
+      return new RemoteData('/routes');
+    };
+
+    function RemoteData(url) {
+      var data, callbacks = [];
+
+      $.getJSON(url, function(json) {
+        data = json;
+        runCallbacks();
+      });
+
+      this.forEach = function forEach(callback, options) {
+        options = options || {};
+        if ('first' in options) options.first();
+        addCallback(function(data) { data.forEach(callback) });
+      };
+
+      function addCallback(callback) {
+        callbacks.push(callback);
+        runCallbacks();
+      }
+
+      function runCallbacks() {
+        if (data === undefined) return;
+        var callback;
+        while (callback = callbacks.pop()) callback(data);
+      }
+    };
+  };
+
+  /* view */
+  var view = new function() {
+    this.refreshing = function refreshing(on) {
+      $('#refresh div.refresh' + (on ? '' : 'ing')).hide();
+      $('#refresh div.refresh' + (on ? 'ing' : '')).show();
+    };
+
+    this.loadOptions = function loadOptions(ul, options) {
+      options.forEach(function(option) {
+        $(['<li class="arrow">',option[0],'</li>'].join('')).appendTo(ul).data('id', option[1]);
+      }, { first: function() { $(ul).empty(); } });
+    }
+  };
+
+  /* controller */
+  var controller = new function() {
+    $('#refresh').toggle(
+      function off() { view.refreshing(true); },
+      function on() { view.refreshing(false); });
+
+    $('#add').click(function() {
+      view.loadOptions('#routes', model.routes()); });
+  }
 });
 </script>
 </html>
