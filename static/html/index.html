@@ -214,10 +214,16 @@ $(function() {
     function RemoteData(url) {
       var data, callbacks = [];
 
-      $.getJSON(url, function(json) {
-        data = json.map(function(options) { return { id: options[1], name: options[0] } });
+      if (url in localStorage) {
+        data = JSON.parse(localStorage[url]);
         runCallbacks();
-      });
+      } else {
+        $.getJSON(url, function(json) {
+          data = json.map(function(options) { return { id: options[1], name: options[0] } });
+          localStorage[url] = JSON.stringify(data);
+          runCallbacks();
+        });
+      }
 
       this.forEach = function forEach(callback, options) {
         options = options || {};
