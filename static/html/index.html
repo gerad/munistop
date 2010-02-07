@@ -205,13 +205,19 @@ $(function() {
 
       var times = self.times();
       var refreshCount = times.length;
-      for (var i = 0, l = times.length; i < l; i++) {
-        times[i].refresh({
-          after: function() {
-            refreshCount--;
-            if ('after' in opts && refreshCount === 0) opts.after();
-          }
-        });
+      if (times.length) {
+        for (var i = 0, l = times.length; i < l; i++) {
+          times[i].refresh({
+            after: function() {
+              refreshCount--;
+              after();
+            }
+          });
+        }
+      } else after();
+
+      function after() {
+        if ('after' in opts && refreshCount === 0) opts.after();
       }
     };
 
