@@ -1,12 +1,12 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" manifest="manifest.manifest">
 <head>
   <meta charset="UTF-8" />
   <title>MuniStop</title>
   <style type="text/css" media="screen">@import "/css/jqtouch.min.css";</style>
   <style type="text/css" media="screen">@import "/css/apple.min.css";</style>
-  <script src="/js/jquery-1.4.1.js" type="text/javascript" charset="utf-8"></script>
-  <script src="/js/jqtouch.js" type="application/x-javascript" charset="utf-8"></script>
+  <script src="/js/jquery-1.4.1.min.js" type="text/javascript" charset="utf-8"></script>
+  <script src="/js/jqtouch.min.js" type="application/x-javascript" charset="utf-8"></script>
   <style>
   #times table {
     border-collapse: collapse;
@@ -53,26 +53,53 @@
     display: none;
   }
 
-  .disabled { color :red; }
+  .disabled { color: #AAA; }
+  .disabled.whiteButton { color: #666; }
 
   .slideback.in { -webkit-animation-name: slideinfromleft; }
   .slideback.out { -webkit-animation-name: slideouttoright; }
   .slideback.in.reverse { -webkit-animation-name: slideinfromright; }
   .slideback.out.reverse { -webkit-animation-name: slideouttoleft; }
+  #info .info p {
+    margin: 5px;
+  }
   </style>
 </head>
 <body>
   <div id="home">
-      <div class="toolbar">
-          <h1>MuniStop</h1>
-          <div id="refresh" class="button">
-            <div class="refresh">&nbsp;</div>
-            <div class="refreshing">&nbsp;</div>
-          </div>
+    <div class="toolbar">
+      <h1>MuniStop</h1>
+      <a href="#info" class="button leftButton flip">About</a>
+      <div id="refresh" class="button">
+        <div class="refresh">&nbsp;</div>
+        <div class="refreshing">&nbsp;</div>
       </div>
-      <ul id="times" class="metal"></ul>
+    </div>
+    <ul id="times"></ul>
 
-      <a href="#choice" id="add" style="margin: 10px;" class="whiteButton slideup">Add Stop</a>
+    <a href="#choice" id="add" style="margin: 10px;" class="whiteButton slideup">Add Stop</a>
+  </div>
+
+  <div id="info">
+    <div class="toolbar">
+      <h1>About MuniStop</h1>
+      <a href="#home" class="cancel">Cancel</a>
+    </div>
+    <div class="info">
+      <p>
+        A wicked-fast way to check arrival times of San Francisco muni buses
+        on your iPhone.
+      </p>
+      <p>
+        Built with <a href="http://www.jqtouch.com/">jQTouch</a> and
+        <a href="http://code.google.com/appengine/">Google App Engine</a>.
+        Some icons from <a href="http://glyphish.com/">Glyphish</a>.
+      </p>
+      <p>
+        Built by <a href="http://www.twitter.com/gerad">@gerad</a>.
+        Code available <a href="http://github.com/gerad/munistop">on GitHub</a>.
+      </p>
+    </div>
   </div>
 
   <div id="choice">
@@ -126,7 +153,7 @@
 </body>
 <script>
 var jQT = $.jQTouch({
-  startupScreen: 'i/loading.gif'
+  startupScreen: 'i/ajax-loader.gif'
 });
 
 $(function() {
@@ -445,8 +472,7 @@ $(function() {
       refreshTimeout = setTimeout(refresh, 15000);
     }
     setRefreshTimeout();
-
-  }
+  };
 });
 </script>
 </html>
