@@ -137,6 +137,8 @@ $(function() {
 
   /* model */
   var model = new function() {
+    var self = this, _ = {};
+
     this.routes = function routes() {
       return new RemoteData('/routes');
     };
@@ -149,6 +151,65 @@ $(function() {
       return new RemoteData('/routes/' + route.id + '/directions/' + direction.id + '/stops');
     };
 
+    _.stops = 'stops' in localStorage ? JSON.parse(localStorage.stops) : [];
+    this.addTime = function addTime(stop) {
+      var time = new Time(stop);
+      self.times().push(time);
+
+      _.stops.push(stop);
+      localStorage.stops = JSON.stringify(_.stops);
+
+      return time;
+    };
+
+    this.times = function times() {
+      if (!('times' in _))
+        _.times = _.stops.map(function(stop) { return new Time(stop); });
+      return _.times;
+    };
+
+    this.refreshTimes = function refreshTimes(opts) {
+      opts = opts || {};
+
+      var times = self.times();
+      var refreshCount = times.length;
+      for (var i = 0, l = times.length; i < l; i++) {
+        times[i].refresh({
+          after: function() {
+            refreshCount--;
+            if ('after' in opts && refreshCount === 0) opts.after();
+          }
+        });
+      }
+    };
+
+    function Time(stop) {
+      var self = this, _ = {}, callbacks = [];
+      this.route = stop.route;
+      this.direction = stop.direction;
+      this.stop = stop.stop;
+
+      this.update = function update(callback) {
+        callbacks.push(callback);
+        return self;
+      };
+
+      this.refresh = function refresh(opts) {
+        opts = opts || {};
+
+        $.getJSON(['',
+            'routes', stop.route.id,
+            'directions', stop.direction.id,
+            'stops', stop.stop.id,
+            'times'].join('/'), function(data) {
+          self.times = data;
+          for (var i in callbacks) callbacks[i](self);
+          if ('after' in opts) opts.after();
+        });
+        return self;
+      };
+      this.refresh();
+    }
 
     function RemoteData(url) {
       var data, callbacks = [];
@@ -187,6 +248,51 @@ $(function() {
     this.add = {};
     observable(this.add, 'click').watch('#add');
 
+    /* addStop button */
+    this.addStop = {};
+    observable(this.addStop, 'click').watch('#choice .whiteButton');
+
+    /* refresh button */
+    this.refreshing = function refreshing(on) {
+      if (typeof on !== 'boolean')
+        on = !$('#refresh').data('refreshing');
+      $('#refresh').data('refreshing', on);
+
+      $('#refresh div.refresh' + (on ? '' : 'ing')).hide();
+      $('#refresh div.refresh' + (on ? 'ing' : '')).show();
+
+      return on;
+    };
+    $('#refresh').data('refreshing', false);
+    observable(this.refreshing, 'click').watch('#refresh').click(this.refreshing);
+
+    this.addTime = function addTime(time) {
+      var li = $([
+        "<li><table><tr>" ,
+        "<td class='route-stop'>" ,
+        "  <div class='stop'>" + time.stop.name + '</div>' ,
+        "  <div class='route'>" + time.route.name + ' - ' + time.direction.name + '</div>' ,
+        "</td><td class='times'>" ,
+        "  <img class='loading' src='/i/ajax-loader.gif' alt='loading&hellip;' />" ,
+        "  <div class='current' style='display:none'></div>" ,
+        "  <div class='next' style='display:none'></div>" ,
+        "</td>" ,
+        "</tr></table></li>"].join("\n"));
+      li.appendTo('#times');
+      li.data(time);
+      time.update(function(time) {
+        updateTimes(li, time.times);
+      });
+      if ('times' in time) updateTimes(li, time.times);
+    };
+
+    function updateTimes(li, times) {
+      $('.current', li).html(times.shift());
+      $('.next', li).html(times.join(', '));
+      $('.times img', li).hide();
+      $('.times div', li).show();
+    }
+
     /* choice */
     this.choice = function choice(opts) {
       opts = opts || {};
@@ -209,20 +315,6 @@ $(function() {
       return !$(this).hasClass('disabled'); // ignore clicks on disabled
     });
 
-    /* refresh button */
-    this.refreshing = function refreshing(on) {
-      if (typeof on !== 'boolean')
-        on = !$('#refresh').data('refreshing');
-      $('#refresh').data('refreshing', on);
-
-      $('#refresh div.refresh' + (on ? '' : 'ing')).hide();
-      $('#refresh div.refresh' + (on ? 'ing' : '')).show();
-
-      return on;
-    };
-    $('#refresh').data('refreshing', false);
-    observable(this.refreshing, 'click').watch('#refresh').click(this.refreshing);
-
     /* routes */
     this.routes = function routes(data) {
       loadOptions('#routes', data, routes);
@@ -241,10 +333,12 @@ $(function() {
     }
     observable(this.stops, 'click');
 
-
     function loadOptions(ul, options, observer) {
       options.forEach(function(option) {
-        var li = $(['<li><a href="#choice" class="slideback">',option.name,'</a></li>'].join(''));
+        var li = $([
+          '<li>',
+          '  <a href="#choice" class="slideback">',option.name,'</a>',
+          '</li>'].join('\n'));
         li.appendTo(ul);
         li.data(option);
         observer.watch(li)
@@ -261,25 +355,25 @@ $(function() {
         callbacks[method].push(callback);
       };
 
-      methods.forEach(function(method) {
+      for (var i in methods) {
+        var method = methods[i];
         fn[method] = function(callback) {
           fn.observe(method, callback);
         };
-      });
+      }
 
       fn.watch = function watch(sel) {
         sel = $(sel);
-        methods.forEach(function(method) {
-          sel[method](function() { notify(method, sel.data()); });
-        });
+        for (var i in methods) {
+          var method = methods[i];
+          sel[method](function() { notify(method, sel.data(), sel); });
+        };
         return fn;
       };
 
-      function notify(method, data) {
+      function notify(method, data, selector) {
         if (!(method in callbacks)) return;
-        callbacks[method].forEach(function(callback) {
-          callback(data);
-        });
+        for (var i in callbacks[method]) callbacks[method][i](data, selector);
       }
 
       return fn;
@@ -290,9 +384,11 @@ $(function() {
   var controller = new function() {
     var self = this, choice = {};
 
-    view.add.click(function() {
-      view.routes(model.routes());
+    /* initial setup */
+    model.times().forEach(function(time) {
+      view.addTime(time);
     });
+    view.routes(model.routes());
 
     view.routes.click(function(route) {
       choice.route = route;
@@ -313,6 +409,36 @@ $(function() {
       choice.stop = stop;
       view.choice(choice);
     });
+
+    view.addStop.click(function() {
+      var time = model.addTime(choice);
+      view.addTime(time);
+    });
+
+    view.refreshing.click(refresh);
+
+    function refresh(opts) {
+      opts = opts || {};
+      if (opts.refreshing === false) return;
+      view.refreshing(true);
+
+      model.refreshTimes({
+        after: function() {
+          view.refreshing(false);
+          setRefreshTimeout();
+        }
+      });
+    }
+
+    var refreshTimeout;
+    function setRefreshTimeout() {
+      if (refreshTimeout) {
+        clearTimeout(refreshTimeout);
+        refreshTimeout = undefined;
+      }
+      refreshTimeout = setTimeout(refresh, 15000);
+    }
+    setRefreshTimeout();
 
   }
 });
