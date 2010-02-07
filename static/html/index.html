@@ -8,6 +8,11 @@
   <script src="/js/jquery-1.4.1.min.js" type="text/javascript" charset="utf-8"></script>
   <script src="/js/jqtouch.min.js" type="application/x-javascript" charset="utf-8"></script>
   <style>
+
+  #times {
+    display: none;
+  }
+
   #times table {
     border-collapse: collapse;
     width: 100%;
@@ -311,6 +316,7 @@ $(function() {
         "  <div class='next' style='display:none'></div>" ,
         "</td>" ,
         "</tr></table></li>"].join("\n"));
+      $('#times').show();
       li.appendTo('#times');
       li.data(time);
       time.update(function(time) {
