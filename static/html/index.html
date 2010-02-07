@@ -326,6 +326,7 @@ $(function() {
     };
 
     function updateTimes(li, times) {
+      if (!times || !times.length) times = ['None'];
       $('.current', li).html(times.shift());
       $('.next', li).html(times.join(', '));
       $('.times img', li).hide();
