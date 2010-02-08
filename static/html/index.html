@@ -183,7 +183,7 @@ $(function() {
       return new RemoteData('/routes/' + route.id + '/directions/' + direction.id + '/stops');
     };
 
-    _.stops = 'stops' in localStorage ? JSON.parse(localStorage.stops) : [];
+    _.stops = 'stops' in localStorage ? JSON.parse(localStorage.stops).filter(function(stop) { return stop; }) : [];
     this.addTime = function addTime(stop) {
       var time = new Time(stop);
       self.times().push(time);
