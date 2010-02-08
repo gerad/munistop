@@ -18,10 +18,10 @@ handlers:
   static_files: static/images/favicon.ico
   upload: static/images/favicon.ico
 
-# - url: /manifest.manifest
-#   static_files: static/html/manifest.manifest
-#   upload: static/html/manifest.manifest
-#   mime_type: text/cache-manifest
+- url: /manifest.manifest
+  static_files: static/html/manifest.manifest
+  upload: static/html/manifest.manifest
+  mime_type: text/cache-manifest
 
 - url: /
   static_files: static/html/index.html
