@@ -160,6 +160,7 @@
 // methods in a closure to avoid creating global variables.
 
 JSON || (function () {
+    this.JSON = {};
 
     function f(n) {
         // Format integers to have at least two digits.
