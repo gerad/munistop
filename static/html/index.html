@@ -419,6 +419,8 @@ $(function() {
 
       function notify(method, data, selector) {
         if (!(method in callbacks)) return;
+        delete data.events;
+        delete data.handle;
         for (var i in callbacks[method]) callbacks[method][i](data, selector);
       }
 

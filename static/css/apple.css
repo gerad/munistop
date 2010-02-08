@@ -3,7 +3,7 @@ body {
 }
 
 body > * {
-    background: rgb(197,204,211) url(img/pinstripes.png);
+    background: rgb(197,204,211) url(/i/pinstripes.png);
 }
 
 h1, h2 {
@@ -20,7 +20,7 @@ h1, h2 {
     border-bottom: 1px solid #2d3642;
     padding: 10px;
     height: 45px;
-    background: url(img/toolbar.png) #6d84a2 repeat-x;
+    background: url(/i/toolbar.png) #6d84a2 repeat-x;
     position: relative;
 }
 
@@ -71,15 +71,15 @@ body.landscape .toolbar > h1 {
     text-decoration: none;
     white-space: nowrap;
     background: none;
-    -webkit-border-image: url(img/toolButton.png) 0 5 0 5;
+    -webkit-border-image: url(/i/toolButton.png) 0 5 0 5;
 }
 
 .button.active, .back.active, .cancel.active, .add.active {
-    -webkit-border-image: url(img/toolButton.png) 0 5 0 5;	
+    -webkit-border-image: url(/i/toolButton.png) 0 5 0 5;	
 }
 
 .blueButton {
-    -webkit-border-image: url(img/blueButton.png) 0 5 0 5;
+    -webkit-border-image: url(/i/blueButton.png) 0 5 0 5;
     border-width: 0 5px;
 }
 
@@ -89,7 +89,7 @@ body.landscape .toolbar > h1 {
     padding: 0;
     max-width: 55px;
     border-width: 0 8px 0 14px;
-    -webkit-border-image: url(img/backButton.png) 0 8 0 14;
+    -webkit-border-image: url(/i/backButton.png) 0 8 0 14;
 }
 
 .leftButton, .cancel {
@@ -116,12 +116,12 @@ body.landscape .toolbar > h1 {
 }
 
 .whiteButton {
-    -webkit-border-image: url(img/whiteButton.png) 0 12 0 12;
+    -webkit-border-image: url(/i/whiteButton.png) 0 12 0 12;
     text-shadow: rgba(255, 255, 255, 0.7) 0 1px 0;
 }
 
 .grayButton {
-    -webkit-border-image: url(img/grayButton.png) 0 12 0 12;
+    -webkit-border-image: url(/i/grayButton.png) 0 12 0 12;
     color: #FFFFFF;
 }
 
@@ -166,7 +166,7 @@ li:last-child, li:last-child a {
 /* universal arrows */
 
 ul li.arrow {
-    background-image: url(img/chevron.png);
+    background-image: url(/i/chevron.png);
     background-position: right center;
     background-repeat: no-repeat;
 }
@@ -192,7 +192,7 @@ ul li a, li.img a + a {
 }
 
 ul li a.active {
-    background: #194fdb url(img/selection.png) 0 0 repeat-x;
+    background: #194fdb url(/i/selection.png) 0 0 repeat-x;
     color: #fff;
 }
 
@@ -321,7 +321,7 @@ ul li input[type="checkbox"]:after, ul li input[type="radio"]:after {
 
 .edgetoedge h4 {
     color: #fff;
-    background: rgb(154,159,170) url(img/listGroup.png) top left repeat-x;
+    background: rgb(154,159,170) url(/i/listGroup.png) top left repeat-x;
     border-top: 1px solid rgb(165,177,186);
     text-shadow: #666 0 1px 0;
     margin: 0;
@@ -414,7 +414,7 @@ ul li.arrow small.counter {
 /* @group Plastic */
 
 #plastic ul li.arrow, #metal ul li.arrow {
-    background-image: url(img/listArrow.png);
+    background-image: url(/i/listArrow.png);
     background-position: right center;
     background-repeat: no-repeat;
 }
@@ -648,7 +648,7 @@ ul.individual li a:hover {
     -webkit-tap-highlight-color: rgba(0,0,0,0);
     margin: 0;
     -webkit-border-radius: 5px;
-    background: #fff url(img/on_off.png) 0 0 no-repeat;
+    background: #fff url(/i/on_off.png) 0 0 no-repeat;
     height: 27px;
     overflow: hidden;
     width: 149px;
